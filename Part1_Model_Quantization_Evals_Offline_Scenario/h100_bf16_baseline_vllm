@@ -1,0 +1,77 @@
+# VLLM Server
+VLLM_ATTENTION_BACKEND=FLASHINFER vllm serve "Qwen/Qwen3-8B" \
+ --max-model-len 8192 --tensor-parallel-size 1 \
+ --gpu-memory-utilization 0.9 --seed 42 &> serve.log &
+
+# Guidellm Client (Prefill-heavy)
+guidellm benchmark --target http://localhost:8000 --model "Qwen/Qwen3-8B" \
+ --data 'source=benchmarks/sonnet.txt,prompt_tokens=2048,output_tokens=128,samples=300' \
+ --rate-type throughput
+
+Benchmarks Metadata:
+    Run id:7c5b6a96-e68a-4f6a-b3f0-0f82a5a57290
+    Duration:27.3 seconds
+    Profile:type=throughput, strategies=['throughput'], max_concurrency=None
+    Args:max_number=300, max_duration=None, warmup_number=None, warmup_duration=None, cooldown_number=None, cooldown_duration=None
+    Worker:type_='generative_requests_worker' backend_type='openai_http' backend_target='http://localhost:8000' backend_model='Qwen/Qwen3-8B'                          
+    backend_info={'max_output_tokens': 16384, 'timeout': 300, 'http2': True, 'follow_redirects': True, 'headers': {}, 'text_completions_path': '/v1/completions',      
+    'chat_completions_path': '/v1/chat/completions'}                                                                                                                   
+    Request Loader:type_='generative_request_loader' data='source=benchmarks/sonnet.txt,prompt_tokens=2048,output_tokens=128,samples=300' data_args=None               
+    processor='Qwen/Qwen3-8B' processor_args=None                                                                                                                      
+    Extras:None
+
+Benchmarks Stats:
+====================================================================================================================================================
+Metadata  | Request Stats         || Out Tok/sec| Tot Tok/sec| Req Latency (sec) ||| TTFT (ms)            ||| ITL (ms)        ||| TPOT (ms)       ||
+ Benchmark| Per Second| Concurrency|        mean|        mean|  mean| median|   p99|   mean| median|     p99| mean| median|  p99| mean| median|  p99
+----------|-----------|------------|------------|------------|------|-------|------|-------|-------|--------|-----|-------|-----|-----|-------|-----
+throughput|      13.51|      257.41|      1729.5|     29405.1| 19.05|  19.62| 22.16| 9414.7| 8187.1| 19329.0| 75.9|   90.0| 99.7| 75.3|   89.3| 98.9
+====================================================================================
+
+# Guidellm Client (Balanced)
+guidellm benchmark --target http://localhost:8000 --model "Qwen/Qwen3-8B" \
+ --data 'source=benchmarks/sonnet.txt,prompt_tokens=1024,output_tokens=1024,samples=300' \
+ --rate-type throughput
+
+Benchmarks Metadata:
+    Run id:5c444b5d-d3ee-47eb-a5c2-dcf0ac67ec2a
+    Duration:61.9 seconds
+    Profile:type=throughput, strategies=['throughput'], max_concurrency=None
+    Args:max_number=300, max_duration=None, warmup_number=None, warmup_duration=None, cooldown_number=None, cooldown_duration=None
+    Worker:type_='generative_requests_worker' backend_type='openai_http' backend_target='http://localhost:8000' backend_model='Qwen/Qwen3-8B'                          
+    backend_info={'max_output_tokens': 16384, 'timeout': 300, 'http2': True, 'follow_redirects': True, 'headers': {}, 'text_completions_path': '/v1/completions',      
+    'chat_completions_path': '/v1/chat/completions'}                                                                                                                   
+    Request Loader:type_='generative_request_loader' data='source=benchmarks/sonnet.txt,prompt_tokens=1024,output_tokens=1024,samples=300' data_args=None              
+    processor='Qwen/Qwen3-8B' processor_args=None                                                                                                                      
+    Extras:None
+
+Benchmarks Stats:
+===================================================================================================================================================
+Metadata  | Request Stats         || Out Tok/sec| Tot Tok/sec| Req Latency (sec) ||| TTFT (ms)           ||| ITL (ms)        ||| TPOT (ms)       ||
+ Benchmark| Per Second| Concurrency|        mean|        mean|  mean| median|   p99|   mean| median|    p99| mean| median|  p99| mean| median|  p99
+----------|-----------|------------|------------|------------|------|-------|------|-------|-------|-------|-----|-------|-----|-----|-------|-----
+throughput|       5.29|      245.63|      5411.9|     10827.8| 46.48|  44.45| 56.64| 3990.2| 3873.8| 7865.8| 41.5|   39.6| 47.7| 41.5|   39.6| 47.6
+===================================================================================================================================================
+
+# Guidellm Client (Decode-heavy)
+guidellm benchmark --target http://localhost:8000 --model "Qwen/Qwen3-8B" \
+ --data 'source=benchmarks/sonnet.txt,prompt_tokens=128,output_tokens=2048,samples=300' \
+ --rate-type throughput
+
+Benchmarks Metadata:
+    Run id:fffa23e9-b0eb-4271-91a0-74a493303b8a
+    Duration:95.8 seconds
+    Profile:type=throughput, strategies=['throughput'], max_concurrency=None
+    Args:max_number=300, max_duration=None, warmup_number=None, warmup_duration=None, cooldown_number=None, cooldown_duration=None
+    Worker:type_='generative_requests_worker' backend_type='openai_http' backend_target='http://localhost:8000' backend_model='Qwen/Qwen3-8B' backend_info={'max_output_tokens': 16384, 'timeout': 300, 'http2': True, 'follow_redirects': True, 'headers': {}, 'text_completions_path': '/v1/completions',            
+    'chat_completions_path': '/v1/chat/completions'}                                                                                                                                                                                                                                                                   
+    Request Loader:type_='generative_request_loader' data='source=benchmarks/sonnet.txt,prompt_tokens=128,output_tokens=2048,samples=300' data_args=None processor='Qwen/Qwen3-8B' processor_args=None
+    Extras:None
+
+Benchmarks Stats:
+==================================================================================================================================================
+Metadata  | Request Stats         || Out Tok/sec| Tot Tok/sec| Req Latency (sec) ||| TTFT (ms)          ||| ITL (ms)        ||| TPOT (ms)       ||
+ Benchmark| Per Second| Concurrency|        mean|        mean|  mean| median|   p99|  mean| median|    p99| mean| median|  p99| mean| median|  p99
+----------|-----------|------------|------------|------------|------|-------|------|------|-------|-------|-----|-------|-----|-----|-------|-----
+throughput|       3.31|      251.28|      6775.9|      7200.3| 75.95|  69.29| 90.60| 737.3|  675.0| 1152.5| 36.7|   33.5| 43.7| 36.7|   33.5| 43.7
+==================================================================================================================================================

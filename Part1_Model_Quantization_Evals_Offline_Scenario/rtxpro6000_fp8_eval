@@ -1,0 +1,86 @@
+# VLLM Server with long context window (FP8 example)
+VLLM_USE_FLASHINFER_MOE_FP8=1 VLLM_ATTENTION_BACKEND=FLASHINFER vllm serve "Qwen/Qwen3-8B-FP8" \
+--kv-cache-dtype fp8 --max-model-len 32768 --tensor-parallel-size 1 \
+--gpu-memory-utilization 0.9 --seed 42 &> serve.log &
+
+# LM-Eval Client (MMLU-Pro example)
+HF_ALLOW_CODE_EVAL=1 lm_eval --model local-completions \
+--tasks mmlu_pro --batch_size 1 \
+--model_args model=Qwen/Qwen3-8B-FP8,base_url=http://localhost:8000/v1/completions,max_length=32768,num_concurrent=64 \
+--seed 42 --show_config --confirm_run_unsafe_code --log_samples \
+--output_path ./Qwen3-8B_fp8.json --num_fewshot 5 --fewshot_as_multiturn \
+--apply_chat_template --gen_kwargs temperature=0.6,top_p=0.95,top_k=20,max_gen_toks=16384 \
+--limit 40 &> mmlu_fp8.log &
+
+local-completions (model=Qwen/Qwen3-8B-FP8,base_url=http://localhost:8000/v1/completions,max_length=32768,num_concurrent=64), gen_kwargs: (temperature=0.6,top_p=0.95,top_k=20,max_gen_toks=16384), limit: 40.0, num_fewshot: 5, batch_size: 1
+|       Tasks       |Version|    Filter    |n-shot|  Metric   |   |Value |   |Stderr|
+|-------------------|------:|--------------|-----:|-----------|---|-----:|---|-----:|
+|mmlu_pro           |    2.0|custom-extract|      |exact_match|↑  |0.6946|±  |0.0184|
+| - biology         |    2.1|custom-extract|     5|exact_match|↑  |0.7750|±  |0.0669|
+| - business        |    2.1|custom-extract|     5|exact_match|↑  |0.8000|±  |0.0641|
+| - chemistry       |    2.1|custom-extract|     5|exact_match|↑  |0.8250|±  |0.0608|
+| - computer_science|    2.1|custom-extract|     5|exact_match|↑  |0.7750|±  |0.0669|
+| - economics       |    2.1|custom-extract|     5|exact_match|↑  |0.7750|±  |0.0669|
+| - engineering     |    2.1|custom-extract|     5|exact_match|↑  |0.7250|±  |0.0715|
+| - health          |    2.1|custom-extract|     5|exact_match|↑  |0.6250|±  |0.0775|
+| - history         |    2.1|custom-extract|     5|exact_match|↑  |0.4250|±  |0.0792|
+| - law             |    2.1|custom-extract|     5|exact_match|↑  |0.4250|±  |0.0792|
+| - math            |    2.1|custom-extract|     5|exact_match|↑  |0.9750|±  |0.0250|
+| - other           |    2.1|custom-extract|     5|exact_match|↑  |0.5000|±  |0.0801|
+| - philosophy      |    2.1|custom-extract|     5|exact_match|↑  |0.5750|±  |0.0792|
+| - physics         |    2.1|custom-extract|     5|exact_match|↑  |0.9000|±  |0.0480|
+| - psychology      |    2.1|custom-extract|     5|exact_match|↑  |0.6250|±  |0.0775|
+
+| Groups |Version|    Filter    |n-shot|  Metric   |   |Value |   |Stderr|
+|--------|------:|--------------|------|-----------|---|-----:|---|-----:|
+|mmlu_pro|      2|custom-extract|      |exact_match|↑  |0.6946|±  |0.0184|
+
+# LM-Eval Client (BBH & GPQA example)
+HF_ALLOW_CODE_EVAL=1 lm_eval --model local-completions \
+ --tasks bbh_cot_fewshot,leaderboard_gpqa --batch_size 1 \
+ --model_args model=Qwen/Qwen3-8B-FP8,base_url=http://localhost:8000/v1/completions,max_length=32768,num_concurrent=64 \
+ --seed 42 --show_config --confirm_run_unsafe_code --log_samples \
+ --output_path ./Qwen3-8B_fp8.json --num_fewshot 3 \
+ --gen_kwargs temperature=0.6,top_p=0.95,top_k=20,max_gen_toks=16384 \
+ --limit 40 &> bbh_gpqa_fp8.log &
+
+local-completions (model=Qwen/Qwen3-8B-FP8,base_url=http://localhost:8000/v1/completions,max_length=32768,num_concurrent=64), gen_kwargs: (temperature=0.6,top_p=0.95,top_k=20,max_gen_toks=16384), limit: 40.0, num_fewshot: 3, batch_size: 1
+|                          Tasks                           |Version|  Filter  |n-shot|  Metric   |   |Value |   |Stderr|
+|----------------------------------------------------------|------:|----------|-----:|-----------|---|-----:|---|-----:|
+|bbh_cot_fewshot                                           |      3|get-answer|      |exact_match|↑  |0.7778|±  |0.0112|
+| - bbh_cot_fewshot_boolean_expressions                    |      4|get-answer|     3|exact_match|↑  |0.9750|±  |0.0250|
+| - bbh_cot_fewshot_causal_judgement                       |      4|get-answer|     3|exact_match|↑  |0.4750|±  |0.0800|
+| - bbh_cot_fewshot_date_understanding                     |      4|get-answer|     3|exact_match|↑  |0.7000|±  |0.0734|
+| - bbh_cot_fewshot_disambiguation_qa                      |      4|get-answer|     3|exact_match|↑  |0.5750|±  |0.0792|
+| - bbh_cot_fewshot_dyck_languages                         |      4|get-answer|     3|exact_match|↑  |0.5250|±  |0.0800|
+| - bbh_cot_fewshot_formal_fallacies                       |      4|get-answer|     3|exact_match|↑  |0.5500|±  |0.0797|
+| - bbh_cot_fewshot_geometric_shapes                       |      4|get-answer|     3|exact_match|↑  |0.6250|±  |0.0775|
+| - bbh_cot_fewshot_hyperbaton                             |      4|get-answer|     3|exact_match|↑  |0.9500|±  |0.0349|
+| - bbh_cot_fewshot_logical_deduction_five_objects         |      4|get-answer|     3|exact_match|↑  |0.7750|±  |0.0669|
+| - bbh_cot_fewshot_logical_deduction_seven_objects        |      4|get-answer|     3|exact_match|↑  |0.1750|±  |0.0608|
+| - bbh_cot_fewshot_logical_deduction_three_objects        |      4|get-answer|     3|exact_match|↑  |0.9750|±  |0.0250|
+| - bbh_cot_fewshot_movie_recommendation                   |      4|get-answer|     3|exact_match|↑  |0.6750|±  |0.0750|
+| - bbh_cot_fewshot_multistep_arithmetic_two               |      4|get-answer|     3|exact_match|↑  |1.0000|±  |0.0000|
+| - bbh_cot_fewshot_navigate                               |      4|get-answer|     3|exact_match|↑  |0.9750|±  |0.0250|
+| - bbh_cot_fewshot_object_counting                        |      4|get-answer|     3|exact_match|↑  |0.9000|±  |0.0480|
+| - bbh_cot_fewshot_penguins_in_a_table                    |      4|get-answer|     3|exact_match|↑  |0.8750|±  |0.0530|
+| - bbh_cot_fewshot_reasoning_about_colored_objects        |      4|get-answer|     3|exact_match|↑  |0.8750|±  |0.0530|
+| - bbh_cot_fewshot_ruin_names                             |      4|get-answer|     3|exact_match|↑  |0.8750|±  |0.0530|
+| - bbh_cot_fewshot_salient_translation_error_detection    |      4|get-answer|     3|exact_match|↑  |0.6500|±  |0.0764|
+| - bbh_cot_fewshot_snarks                                 |      4|get-answer|     3|exact_match|↑  |0.7000|±  |0.0734|
+| - bbh_cot_fewshot_sports_understanding                   |      4|get-answer|     3|exact_match|↑  |0.8250|±  |0.0608|
+| - bbh_cot_fewshot_temporal_sequences                     |      4|get-answer|     3|exact_match|↑  |0.8250|±  |0.0608|
+| - bbh_cot_fewshot_tracking_shuffled_objects_five_objects |      4|get-answer|     3|exact_match|↑  |0.9750|±  |0.0250|
+| - bbh_cot_fewshot_tracking_shuffled_objects_seven_objects|      4|get-answer|     3|exact_match|↑  |0.9500|±  |0.0349|
+| - bbh_cot_fewshot_tracking_shuffled_objects_three_objects|      4|get-answer|     3|exact_match|↑  |0.9500|±  |0.0349|
+| - bbh_cot_fewshot_web_of_lies                            |      4|get-answer|     3|exact_match|↑  |1.0000|±  |0.0000|
+| - bbh_cot_fewshot_word_sorting                           |      4|get-answer|     3|exact_match|↑  |0.6500|±  |0.0764|
+|leaderboard_gpqa                                          |       |none      |      |acc_norm   |↑  |0.4083|±  |0.0450|
+| - leaderboard_gpqa_diamond                               |      1|none      |     0|acc_norm   |↑  |0.3750|±  |0.0775|
+| - leaderboard_gpqa_extended                              |      1|none      |     0|acc_norm   |↑  |0.3500|±  |0.0764|
+| - leaderboard_gpqa_main                                  |      1|none      |     0|acc_norm   |↑  |0.5000|±  |0.0801|
+
+|     Groups     |Version|  Filter  |n-shot|  Metric   |   |Value |   |Stderr|
+|----------------|------:|----------|------|-----------|---|-----:|---|-----:|
+|bbh_cot_fewshot |      3|get-answer|      |exact_match|↑  |0.7778|±  |0.0112|
+|leaderboard_gpqa|       |none      |      |acc_norm   |↑  |0.4083|±  |0.0450|
